@@ -5,7 +5,7 @@ import re
 
 async def main(playwright, city_name="Mumbai"):
     city_name = city_name.capitalize()
-    browser = await playwright.chromium.launch(headless=False)
+    browser = await playwright.chromium.launch(headless=True)
     page = await browser.new_page()
 
     try:
