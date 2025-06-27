@@ -76,7 +76,7 @@ async def run(playwright, location):
                 print(f"Error processing test {index}: {e}")
 
         # Step 5: Save data to JSON file
-        with open(f'output\{location}_lalpathlabs_tests_data.json', 'w', encoding='utf-8') as f:
+        with open(f'output/{location}_lalpathlabs_tests_data.json', 'w', encoding='utf-8') as f:
             json.dump(tests_data, f, indent=4)
         print(f"Saved scraped data to {location}_lalpathlabs_tests_data.json")
 
