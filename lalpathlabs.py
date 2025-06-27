@@ -8,7 +8,7 @@ async def run(playwright, location):
     start_time = datetime.now()
 
     # Launch the browser (Chromium)
-    browser = await playwright.chromium.launch(headless=False)
+    browser = await playwright.chromium.launch(headless=True)
     context = await browser.new_context()
     page = await context.new_page()
 
