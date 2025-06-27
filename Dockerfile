@@ -1,23 +1,18 @@
-# Use the official Python image with Playwright dependencies
-FROM mcr.microsoft.com/playwright/python:v1.44.0-focal
+FROM python:3.10-slim
 
-# Set work directory
 WORKDIR /app
+COPY . /app
 
-# Copy requirements and install dependencies
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+# Silence pip root warning
+ENV PIP_ROOT_USER_ACTION=ignore
 
-# Copy the rest of the code
-COPY . .
+# Install dependencies
+RUN pip install --upgrade pip
+RUN pip install -r requirements.txt
 
-# Set environment variables (adjust as needed)
-ENV PYTHONUNBUFFERED=1
+# Install playwright & browsers
+RUN pip install playwright && playwright install --with-deps
 
-# Expose port if running an API (adjust as needed)
 EXPOSE 8000
 
-# Default command (adjust as needed)
 CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
-
-
