@@ -18,4 +18,4 @@ ENV PYTHONUNBUFFERED=1
 EXPOSE 8000
 
 # Default command (adjust as needed)
-CMD ["uvicorn", "compare_routes:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "compare_routes:app", "--host", "127.0.0.1", "--port", "8000"]
