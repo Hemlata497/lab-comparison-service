@@ -26,6 +26,7 @@ async def run(playwright, location):
 
         await page.wait_for_selector('div.col-12.col-sm-6.col-md-6.col-lg-4', timeout=10000)
 
+
         # Extract all data inside browser context for better performance
         tests_data = await page.eval_on_selector_all(
             'div.col-12.col-sm-6.col-md-6.col-lg-4',
@@ -60,13 +61,21 @@ async def run(playwright, location):
             '''
         )
 
-        # Ensure output directory exists
-        os.makedirs("output", exist_ok=True)
+        # If all test_names are 'N/A', save the HTML for debugging
+        if all(t.get('test_name') == 'N/A' for t in tests_data):
+            html = await page.content()
+            debug_file = f'output/debug_lalpathlabs_{location}.html'
+            with open(debug_file, 'w', encoding='utf-8') as f:
+                f.write(html)
+            print(f"[DEBUG] Saved page HTML to {debug_file} for inspection.")
 
         output_file = f'output/{location}_lalpathlabs_tests_data.json'
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(tests_data, f, indent=4)
-        print(f"Saved scraped data to {output_file}")
+        try:
+            with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump(tests_data, f, indent=4)
+            print(f"Saved scraped data to {output_file}")
+        except Exception as e:
+            print(f"[ERROR] Failed to write LalPathLabs output file: {e}")
 
     except Exception as e:
         print(f"An error occurred: {e}")

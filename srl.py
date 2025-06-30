@@ -63,13 +63,16 @@ async def scrape_srl_diagnostics(playwright, base_url, output_filename="output/s
 
     await browser.close()
 
-    # Save results
-    if scraped_data:
+    # Always write output file, even if empty
+    try:
         with open(output_filename, 'w', encoding='utf-8') as f:
             json.dump(scraped_data, f, ensure_ascii=False, indent=4)
-        print(f"✅ SRL data saved to {output_filename}")
-    else:
-        print(f"⚠️ No data scraped from SRL.")
+        if scraped_data:
+            print(f"✅ SRL data saved to {output_filename}")
+        else:
+            print(f"⚠️ No data scraped from SRL. Empty file written.")
+    except Exception as e:
+        print(f"[ERROR] Failed to write SRL output file: {e}")
 
 # For direct execution
 if __name__ == "__main__":

@@ -75,11 +75,28 @@ async def run_scrapers_and_compare(location: str):
     location = location.strip() or "Mumbai"
     print(f"\n🔄 Scraping labs for location: {location}")
     start_time = time.time()
+    import subprocess
     async with async_playwright() as p:
         print("Running all scrapers concurrently...")
+        # Run metropolis and srl in parallel, but run lalpathlabs.py as a subprocess for isolation
+        async def run_lalpathlabs_subprocess(location):
+            # Use sys.executable to ensure the same Python environment
+            import sys
+            result = await asyncio.to_thread(
+                subprocess.run,
+                [sys.executable, "lalpathlabs.py"],
+                input=f"{location}\n",
+                capture_output=True,
+                text=True,
+                cwd=os.path.dirname(os.path.abspath(__file__))
+            )
+            print("[lalpathlabs.py output]", result.stdout)
+            if result.stderr:
+                print("[lalpathlabs.py error]", result.stderr)
+
         await asyncio.gather(
             metropolis_main_async(p, location),
-            lalpathlabs_run_async(p, location),
+            run_lalpathlabs_subprocess(location),
             scrape_srl_diagnostics(p, "https://srldiagnostics.in/shop/?orderby=price", output_filename="output/srl_test.json")
         )
         lal_file = f"output/{location}_lalpathlabs_tests_data.json"
