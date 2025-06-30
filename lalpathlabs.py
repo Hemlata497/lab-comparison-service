@@ -61,13 +61,6 @@ async def run(playwright, location):
             '''
         )
 
-        # If all test_names are 'N/A', save the HTML for debugging
-        if all(t.get('test_name') == 'N/A' for t in tests_data):
-            html = await page.content()
-            debug_file = f'output/debug_lalpathlabs_{location}.html'
-            with open(debug_file, 'w', encoding='utf-8') as f:
-                f.write(html)
-            print(f"[DEBUG] Saved page HTML to {debug_file} for inspection.")
 
         output_file = f'output/{location}_lalpathlabs_tests_data.json'
         try:
