@@ -6,7 +6,10 @@ import re
 async def main(playwright, city_name="Mumbai"):
     city_name = city_name.capitalize()
     browser = await playwright.chromium.launch(headless=True)
-    page = await browser.new_page()
+    context = await browser.new_context()
+    # Block images, fonts, stylesheets for faster loading
+    await context.route("**/*", lambda route: route.abort() if route.request.resource_type in ["image", "font", "stylesheet"] else route.continue_())
+    page = await context.new_page()
 
     try:
         print("Navigating to https://www.metropolisindia.com/")
@@ -59,7 +62,7 @@ async def main(playwright, city_name="Mumbai"):
             return
 
         print("Waiting for UI to update after selecting city...")
-        await page.wait_for_timeout(5000)
+        await page.wait_for_timeout(2000)  # Reduced wait for UI update
         print(f"Successfully selected city: {city_name}")
 
         print("Starting to scrape test names, prices, and details from both sections...")
@@ -89,49 +92,24 @@ async def main(playwright, city_name="Mumbai"):
                 await page.locator(container_selector).wait_for(state='visible', timeout=15000)
                 print(f"Found container: {container_selector}")
 
-                test_items = await page.locator(f'{container_selector} {individual_test_item_selector}').all()
-                print(f"Found {len(test_items)} test items in this container.")
-
-                for i, item_locator in enumerate(test_items):
-                    test_info = {}
-
-                    try:
-                        name_element = item_locator.locator(test_name_selector)
-                        if await name_element.count() > 0:
-                            test_info['name'] = await name_element.first.text_content()
-                            test_info['name'] = test_info['name'].strip() if test_info['name'] else 'N/A'
-                        else:
-                            test_info['name'] = 'N/A'
-                    except Exception as e:
-                        test_info['name'] = f'Error getting name: {e}'
-
-                    try:
-                        price_element = item_locator.locator(test_price_selector)
-                        if await price_element.count() > 0:
-                            full_price_text = await price_element.first.text_content()
-                            full_price_text = full_price_text.strip() if full_price_text else 'N/A'
-                            price_text = re.sub(r'[^\d.]', '', full_price_text)
-                            formatted_price = price_text.lstrip('.') if price_text else 'N/A'
-                            test_info['price'] = formatted_price or 'N/A'
-                        else:
-                            test_info['price'] = 'N/A'
-                    except Exception as e:
-                        test_info['price'] = f'Error getting price: {e}'
-
-                    if (
-                        test_info.get('name') and test_info['name'] != 'N/A' and test_info['name'].strip() != '' and
-                        test_info.get('price') and test_info['price'] != 'N/A' and str(test_info['price']).strip() != ''
-                    ):
-                        all_scraped_tests.append(test_info)
-                    else:
-                        print(f"Skipping item {i} from container {container_selector} due to missing/invalid name or price: {test_info}")
-                        if (
-                            (test_info.get('name') and test_info['name'] != 'N/A') or
-                            (test_info.get('price') and test_info['price'] != 'N/A')
-                        ):
-                            print(f"Including partial item {i} with partial data.")
-                            all_scraped_tests.append(test_info)
-
+                # Batch extract all test items in this container
+                test_data = await page.eval_on_selector_all(
+                    f'{container_selector} {individual_test_item_selector}',
+                    f'''
+                    (nodes) => nodes.map(node => {{
+                        const nameEl = node.querySelector('{test_name_selector}');
+                        const priceEl = node.querySelector('{test_price_selector}');
+                        const name = nameEl ? nameEl.textContent.trim() : 'N/A';
+                        const rawPrice = priceEl ? priceEl.textContent.trim() : 'N/A';
+                        const cleanPrice = rawPrice.replace(/[^\\d.]/g, '').replace(/^\\./, '') || 'N/A';
+                        return {{ name: name, price: cleanPrice }};
+                    }})
+                    '''
+                )
+                # Filter incomplete data if needed
+                filtered = [t for t in test_data if t['name'] != 'N/A' and t['price'] != 'N/A']
+                all_scraped_tests.extend(filtered)
+                print(f"Found {len(filtered)} valid test items in this container.")
             except PlaywrightTimeoutError:
                 print(f"Warning: Container '{container_selector}' not found within timeout. Skipping this section.")
             except Exception as e:
@@ -156,10 +134,10 @@ async def main(playwright, city_name="Mumbai"):
 
 
 
-# if __name__ == "__main__":
-#     import asyncio
-#     async def run_metropolis_direct():
-#         city = input("Enter the city name (e.g., Delhi): ").strip() or "Mumbai"
-#         async with async_playwright() as p:
-#             await main(p, city)
-#     asyncio.run(run_metropolis_direct())
+if __name__ == "__main__":
+    import asyncio
+    async def run_metropolis_direct():
+        city = input("Enter the city name (e.g., Delhi): ").strip() or "Mumbai"
+        async with async_playwright() as p:
+            await main(p, city)
+    asyncio.run(run_metropolis_direct())
