@@ -1,25 +1,4 @@
-# Core dependencies
 fastapi
 uvicorn
 playwright
-python-dotenv
-openai
-scikit-learn
-numpy
-pandas
-
-# For running in Docker/Playwright
-requests
-
-# Optional: for async support and concurrency
-httpx
-
-# For typing and linting (optional, for dev)
-typing-extensions
-
-# For running the API
 pydantic
-
-# For running the API (ASGI server)
-uvicorn[standard]
-aiofiles
