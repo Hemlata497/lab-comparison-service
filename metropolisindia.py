@@ -19,12 +19,12 @@ async def main(playwright, city_name="Mumbai"):
         city_selector = f'div.city-selection-wrapper[city-data="{city_name}"]'
         city = page.locator(city_selector)
         try:
-            await city.first.click(timeout=3000)
+            await city.first.click(timeout=9000)
         except:
             print(f" City '{city_name}' not found.")
             return []
         print(" City selected. Scraping...")
-        await page.wait_for_timeout(2000)
+        await page.wait_for_timeout(5000)
         containers = [
             '#test-all div.owl-carousel.owl-theme.package-slide.owl-loaded.owl-drag',
             '#nav-all div.owl-carousel.owl-theme.package-slide.owl-loaded.owl-drag'
@@ -32,7 +32,7 @@ async def main(playwright, city_name="Mumbai"):
         for container in containers:
             print(f" Scraping: {container}")
             try:
-                await page.locator(container).wait_for(state='visible', timeout=3000)
+                await page.locator(container).wait_for(state='visible', timeout=9000)
                 test_items = await page.locator(f'{container} div.owl-item').all()
                 for item in test_items:
                     test_info = {}

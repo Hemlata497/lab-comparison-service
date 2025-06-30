@@ -12,7 +12,7 @@ async def run(playwright, location):
     try:
         await page.goto(f'https://www.lalpathlabs.com/book-a-test/{location}', wait_until='domcontentloaded')
         print(f"Opened page for location: {location}")
-        await page.wait_for_selector('div.col-12.col-sm-6.col-md-6.col-lg-4', timeout=10000)
+        await page.wait_for_selector('div.col-12.col-sm-6.col-md-6.col-lg-4', timeout=90000)
         tests_data = await page.eval_on_selector_all(
             'div.col-12.col-sm-6.col-md-6.col-lg-4',
             '''

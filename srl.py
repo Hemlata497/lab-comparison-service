@@ -5,8 +5,8 @@ import asyncio
 async def scrape_page(context, url):
     page = await context.new_page()
     try:
-        await page.goto(url, wait_until='domcontentloaded', timeout=30000)
-        await page.wait_for_selector('li.product', timeout=10000)
+        await page.goto(url, wait_until='domcontentloaded', timeout=90000)
+        await page.wait_for_selector('li.product', timeout=50000)
         scraped = await page.eval_on_selector_all(
             'li.product',
             '''(nodes) => nodes.map(node => {
