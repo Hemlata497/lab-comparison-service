@@ -50,7 +50,7 @@ def get_embeddings(texts):
         return [d["embedding"] for d in response["data"]]
     except Exception as e:
         print(f"❌ Error generating embeddings: {e}")
-        return []
+        raise RuntimeError(f"OpenAI Embedding API failed: {e}")
 
 async def run_scrapers_and_compare(location: str):
     location = location.strip() or "Mumbai"
@@ -66,22 +66,31 @@ async def run_scrapers_and_compare(location: str):
         lal_file = f"output/{location}_lalpathlabs_tests_data.json"
         metro_file = f"output/metropolis_tests_all_sections_{location}.json"
         srl_file = "output/srl_test.json"
+        import aiofiles
         lal_tests, metro_tests, srl_tests = [], [], []
         if os.path.exists(lal_file):
-            with open(lal_file) as f:
-                lal_tests = [(t["test_name"].strip(), t["price"].strip()) for t in json.load(f)]
+            async with aiofiles.open(lal_file, mode='r', encoding='utf-8') as f:
+                lal_data = await f.read()
+                lal_tests = [(t["test_name"].strip(), t["price"].strip()) for t in json.loads(lal_data)]
         else:
             print(f"⚠️ Lalpathlabs file not found at {lal_file}")
         if os.path.exists(metro_file):
-            with open(metro_file) as f:
-                metro_tests = [(t["name"].strip(), t["price"].replace("Rs.", "").strip()) for t in json.load(f) if t["name"] != "N/A"]
+            async with aiofiles.open(metro_file, mode='r', encoding='utf-8') as f:
+                metro_data = await f.read()
+                metro_tests = [(t["name"].strip(), t["price"].replace("Rs.", "").strip()) for t in json.loads(metro_data) if t["name"] != "N/A"]
         else:
             print(f"⚠️ Metropolis file not found at {metro_file}")
         if os.path.exists(srl_file):
-            with open(srl_file) as f:
-                srl_tests = [(t["test"].strip(), t["price"].replace("₹", "").strip()) for t in json.load(f)]
+            async with aiofiles.open(srl_file, mode='r', encoding='utf-8') as f:
+                srl_data = await f.read()
+                srl_tests = [(t["test"].strip(), t["price"].replace("₹", "").strip()) for t in json.loads(srl_data)]
         else:
             print(f"⚠️ SRL file not found at {srl_file}")
+
+        # Build dictionaries for fast lookup
+        lal_price_dict = {n: p for n, p in lal_tests}
+        metro_price_dict = {n: p for n, p in metro_tests}
+        srl_price_dict = {n: p for n, p in srl_tests}
         print(f"\n📦 Loaded: {len(lal_tests)} LalPathLabs | {len(metro_tests)} Metropolis | {len(srl_tests)} SRL")
         if not (lal_tests and metro_tests and srl_tests):
             print("❌ Not enough data from all sources to perform comparison.")
@@ -89,12 +98,15 @@ async def run_scrapers_and_compare(location: str):
         lal_names = [name for name, _ in lal_tests]
         metro_names = [name for name, _ in metro_tests]
         srl_names = [name for name, _ in srl_tests]
-        lal_embeds = get_embeddings(lal_names)
-        metro_embeds = get_embeddings(metro_names)
-        srl_embeds = get_embeddings(srl_names)
+        # Batch all embedding requests together for efficiency
+        all_texts = lal_names + metro_names + srl_names
+        all_embeds = get_embeddings(all_texts)
+        lal_embeds = all_embeds[:len(lal_names)]
+        metro_embeds = all_embeds[len(lal_names):len(lal_names)+len(metro_names)]
+        srl_embeds = all_embeds[len(lal_names)+len(metro_names):]
         if not (lal_embeds and metro_embeds and srl_embeds):
             print("❌ Failed to generate embeddings.")
-            return
+            raise RuntimeError("Failed to generate embeddings from OpenAI API. Please check your API key or network connectivity.")
         matches_lal_metro = match_tests(lal_names, lal_embeds, metro_names, metro_embeds, threshold=0.85)
         matches_lal_srl = match_tests(lal_names, lal_embeds, srl_names, srl_embeds, threshold=0.85)
         common_tests = set(matches_lal_metro.keys()) & set(matches_lal_srl.keys())
@@ -108,9 +120,12 @@ async def run_scrapers_and_compare(location: str):
             ("SGPT", "SGPT")
         ]
         required_names = [desc for _, desc in required_tests]
+        # Only embed required_names and common_names together for efficiency
+        embed_texts = required_names + list(common_tests)
+        embed_vectors = get_embeddings(embed_texts)
+        required_embeds = embed_vectors[:len(required_names)]
         common_names = list(common_tests)
-        required_embeds = get_embeddings(required_names)
-        common_embeds = get_embeddings(common_names)
+        common_embeds = embed_vectors[len(required_names):]
         from sklearn.metrics.pairwise import cosine_similarity
         matched_tests = []
         for i, (short_name, _) in enumerate(required_tests):
@@ -126,9 +141,9 @@ async def run_scrapers_and_compare(location: str):
             metro_name = matches_lal_metro.get(matched_name)
             srl_name = matches_lal_srl.get(matched_name)
             lal_name = matched_name
-            lal_price = next((p for n, p in lal_tests if n == lal_name), None)
-            metro_price = next((p for n, p in metro_tests if n == metro_name), None)
-            srl_price = next((p for n, p in srl_tests if n == srl_name), None)
+            lal_price = lal_price_dict.get(lal_name)
+            metro_price = metro_price_dict.get(metro_name)
+            srl_price = srl_price_dict.get(srl_name)
             try:
                 lal_price_num = int(float(lal_price)) if lal_price else None
             except:
