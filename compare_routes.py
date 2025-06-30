@@ -4,7 +4,6 @@ from compare_test import run_scrapers_and_compare
 import asyncio
 import os
 import json
-import aiofiles
 
 router = APIRouter()
 
@@ -43,20 +42,21 @@ async def compare_tests(location: LocationInput):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error running comparison: {str(e)}")
 
-    # Load the output file asynchronously
+    # Load the output file
     out_path = f"output/common_tests_with_prices_{city}.json"
     if not os.path.exists(out_path):
         raise HTTPException(status_code=404, detail=f"No comparison data found for location: {city}")
 
     try:
-        async with aiofiles.open(out_path, "r", encoding="utf-8") as f:
-            content = await f.read()
-            data = json.loads(content)
+        with open(out_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
         if not data:
             raise HTTPException(status_code=404, detail=f"No common tests found for location: {city}")
+        # Only include required tests in the output
         required_tests = {"CBC", "Glucose", "TSH", "Uric Acid", "SGPT"}
-        filtered_data = {lab: {k: v for k, v in tests.items() if k in required_tests}
-                         for lab, tests in data["data"].items()}
+        filtered_data = {}
+        for lab, tests in data["data"].items():
+            filtered_data[lab] = {k: v for k, v in tests.items() if k in required_tests}
         return {"data": filtered_data}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error reading output file: {str(e)}")
@@ -78,12 +78,17 @@ async def analyze_endpoint(payload: AnalyzeRequest):
     test_names = [t for t in test_names if t in required_tests]
 
     for test_name in test_names:
-        all_values = [(lab, tests[test_name]) for lab, tests in prices.items() if test_name in tests and tests[test_name] is not None]
+        all_values = []
+        for lab, tests in prices.items():
+            if test_name in tests and tests[test_name] is not None:
+                all_values.append((lab, tests[test_name]))
         if all_values:
-            min_lab, min_price = min(all_values, key=lambda x: x[1])
-            max_price = max(v for _, v in all_values)
+            min_price = min([v for _, v in all_values])
+            max_price = max([v for _, v in all_values])
+            # Find the first lab with the min price
+            recommended_lab = next(lab for lab, price in all_values if price == min_price)
             response_lines.append(
-                f"{test_name}: market range ₹{min_price}–₹{max_price},  AI Recommended: ₹{min_price} (offered by {min_lab})"
+                f"{test_name}: market range ₹{min_price}–₹{max_price},  AI Recommended: ₹{min_price} (offered by {recommended_lab})"
             )
 
     report_text = " | ".join(response_lines)
