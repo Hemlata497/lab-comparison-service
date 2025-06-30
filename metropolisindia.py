@@ -4,6 +4,8 @@ import os
 import re
 import time
 import asyncio
+import sys
+sys.stdout.reconfigure(encoding='utf-8')
 
 async def main(playwright, city_name="Mumbai"):
     start_time = time.time()
@@ -84,7 +86,7 @@ async def main(playwright, city_name="Mumbai"):
         print(f"❌ Error: {e}")
     finally:
         duration = round(time.time() - start_time, 2)
-        print(f"⏱️ Total time taken: {duration} seconds")
+        print(f"Total time taken: {duration} seconds")
         await browser.close()
 
 
