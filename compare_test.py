@@ -42,15 +42,34 @@ def normalize_test_name(name):
     name = re.sub(r"\(.*?\)", "", name)
     return name.strip().title()
 
-def get_embeddings(texts):
+def get_embeddings(texts, cache_path="output/embedding_cache.json"):
     if not texts:
         return []
-    try:
-        response = openai.Embedding.create(input=texts, model="text-embedding-ada-002")
-        return [d["embedding"] for d in response["data"]]
-    except Exception as e:
-        print(f"❌ Error generating embeddings: {e}")
-        raise RuntimeError(f"OpenAI Embedding API failed: {e}")
+    # Load cache if exists
+    if os.path.exists(cache_path):
+        with open(cache_path, "r", encoding="utf-8") as f:
+            embedding_cache = json.load(f)
+    else:
+        embedding_cache = {}
+
+    # Find which texts need to be embedded
+    texts_to_embed = [t for t in texts if t not in embedding_cache]
+    embeddings = []
+    if texts_to_embed:
+        try:
+            response = openai.Embedding.create(input=texts_to_embed, model="text-embedding-ada-002")
+            new_embeds = [d["embedding"] for d in response["data"]]
+            for t, emb in zip(texts_to_embed, new_embeds):
+                embedding_cache[t] = emb
+            # Save updated cache
+            os.makedirs(os.path.dirname(cache_path), exist_ok=True)
+            with open(cache_path, "w", encoding="utf-8") as f:
+                json.dump(embedding_cache, f)
+        except Exception as e:
+            print(f"❌ Error generating embeddings: {e}")
+            raise RuntimeError(f"OpenAI Embedding API failed: {e}")
+    # Return embeddings in the order of input texts
+    return [embedding_cache[t] for t in texts]
 
 async def run_scrapers_and_compare(location: str):
     location = location.strip() or "Mumbai"

@@ -7,6 +7,9 @@ import os
 async def run(playwright, location):
     start_time = datetime.now()
 
+    # Ensure output directory exists before any file operation
+    os.makedirs("output", exist_ok=True)
+
     # Launch browser
     browser = await playwright.chromium.launch(headless=True, args=["--disable-blink-features=AutomationControlled"])
     context = await browser.new_context()

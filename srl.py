@@ -32,6 +32,8 @@ async def scrape_page(context, url):
         return []
 
 async def scrape_srl_diagnostics(playwright, base_url, output_filename="output/srl_test.json"):
+    # Ensure output directory exists before any file operation
+    os.makedirs("output", exist_ok=True)
     # Launch browser and block unnecessary resources
     browser = await playwright.chromium.launch(headless=True)
     context = await browser.new_context()
@@ -62,7 +64,6 @@ async def scrape_srl_diagnostics(playwright, base_url, output_filename="output/s
     await browser.close()
 
     # Save results
-    os.makedirs("output", exist_ok=True)
     if scraped_data:
         with open(output_filename, 'w', encoding='utf-8') as f:
             json.dump(scraped_data, f, ensure_ascii=False, indent=4)
