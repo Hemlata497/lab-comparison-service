@@ -21,16 +21,16 @@ async def main(playwright, city_name="Mumbai"):
         try:
             await city.first.click(timeout=3000)
         except:
-            print(f"❌ City '{city_name}' not found.")
+            print(f" City '{city_name}' not found.")
             return []
-        print("✅ City selected. Scraping...")
+        print(" City selected. Scraping...")
         await page.wait_for_timeout(2000)
         containers = [
             '#test-all div.owl-carousel.owl-theme.package-slide.owl-loaded.owl-drag',
             '#nav-all div.owl-carousel.owl-theme.package-slide.owl-loaded.owl-drag'
         ]
         for container in containers:
-            print(f"➡️ Scraping: {container}")
+            print(f" Scraping: {container}")
             try:
                 await page.locator(container).wait_for(state='visible', timeout=3000)
                 test_items = await page.locator(f'{container} div.owl-item').all()
@@ -55,10 +55,10 @@ async def main(playwright, city_name="Mumbai"):
                     if test_info['name'] != "N/A" or test_info['price'] != "N/A":
                         all_scraped_tests.append(test_info)
             except Exception as e:
-                print(f"⚠️ Skipping {container}: {e}")
-        print(f"✅ Metropolis scraped {len(all_scraped_tests)} tests")
+                print(f" Skipping {container}: {e}")
+        print(f"Metropolis scraped {len(all_scraped_tests)} tests")
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f" Error: {e}")
     finally:
         duration = round(time.time() - start_time, 2)
         print(f"Total time taken: {duration} seconds")

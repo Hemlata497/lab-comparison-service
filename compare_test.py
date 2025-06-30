@@ -32,7 +32,7 @@ TEST_NAME_MAPPINGS = {
 
 async def run_scrapers_and_compare(location: str):
     location = location.strip() or "Mumbai"
-    print(f"\n🔄 Scraping labs for location: {location}")
+    print(f"\n Scraping labs for location: {location}")
     start_time = time.time()
     async with async_playwright() as p:
         print("Running all scrapers concurrently...")
@@ -44,9 +44,9 @@ async def run_scrapers_and_compare(location: str):
         lal_tests = [(t["test_name"].strip(), t["price"].strip()) for t in lal_tests]
         metro_tests = [(t["name"].strip(), t["price"].replace("Rs.", "").strip()) for t in metro_tests if t["name"] != "N/A"]
         srl_tests = [(t["test"].strip(), t["price"].replace("₹", "").strip()) for t in srl_tests]
-        print(f"\n📦 Loaded: {len(lal_tests)} LalPathLabs | {len(metro_tests)} Metropolis | {len(srl_tests)} SRL")
+        print(f"\nLoaded: {len(lal_tests)} LalPathLabs | {len(metro_tests)} Metropolis | {len(srl_tests)} SRL")
         if not (lal_tests and metro_tests and srl_tests):
-            print("❌ Not enough data from all sources to perform comparison.")
+            print(" Not enough data from all sources to perform comparison.")
             return {}
         # Initialize dictionaries for each lab
         lal_dict, metro_dict, srl_dict = {}, {}, {}
@@ -60,7 +60,7 @@ async def run_scrapers_and_compare(location: str):
                     if price_num is not None:
                         lal_dict[standardized_name] = price_num
                 except ValueError:
-                    print(f"⚠️ Invalid price for {test_name} in Lal PathLabs: {price}")
+                    print(f"Invalid price for {test_name} in Lal PathLabs: {price}")
         # Process Metropolis Labs tests
         for test_name, price in metro_tests:
             standardized_name = TEST_NAME_MAPPINGS["Metropolis Labs"].get(test_name)
@@ -70,7 +70,7 @@ async def run_scrapers_and_compare(location: str):
                     if price_num is not None:
                         metro_dict[standardized_name] = price_num
                 except ValueError:
-                    print(f"⚠️ Invalid price for {test_name} in Metropolis Labs: {price}")
+                    print(f" Invalid price for {test_name} in Metropolis Labs: {price}")
         # Process SRL Diagnostics tests
         for test_name, price in srl_tests:
             standardized_name = TEST_NAME_MAPPINGS["SRL Diagnostics"].get(test_name)
@@ -80,9 +80,9 @@ async def run_scrapers_and_compare(location: str):
                     if price_num is not None:
                         srl_dict[standardized_name] = price_num
                 except ValueError:
-                    print(f"⚠️ Invalid price for {test_name} in SRL Diagnostics: {price}")
+                    print(f" Invalid price for {test_name} in SRL Diagnostics: {price}")
         if not lal_dict and not metro_dict and not srl_dict:
-            print("⚠️ None of the required tests found in all three labs. Final output is empty.")
+            print(" None of the required tests found in all three labs. Final output is empty.")
             return {}
         # Compute recommended prices
         recommended_dict = {}
@@ -99,7 +99,7 @@ async def run_scrapers_and_compare(location: str):
                 "Recommended": recommended_dict
             }
         }
-        print(f"\n✅ Comparison completed for {location}")
+        print(f"\n Comparison completed for {location}")
         print(f"Common tests found: {all_test_names}")
         end_time = time.time()
         print(f"Total execution time: {end_time - start_time:.2f} seconds")

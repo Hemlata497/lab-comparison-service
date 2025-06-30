@@ -42,7 +42,7 @@ async def scrape_srl_diagnostics(playwright, base_url):
     results = await asyncio.gather(*tasks)
     scraped_data = [item for sublist in results for item in sublist]
     await browser.close()
-    print(f"✅ SRL scraped {len(scraped_data)} tests")
+    print(f" SRL scraped {len(scraped_data)} tests")
     return scraped_data  # Return data instead of saving
 
 if __name__ == "__main__":

@@ -40,7 +40,7 @@ async def run(playwright, location):
             })
             '''
         )
-        print(f"✅ LalPathLabs scraped {len(tests_data)} tests")
+        print(f" LalPathLabs scraped {len(tests_data)} tests")
     except Exception as e:
         print(f"An error occurred: {e}")
     finally:
